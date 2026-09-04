@@ -171,4 +171,11 @@ sandbox; online is the real score.
 
 ## Licence
 
-MIT.
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
+
+Play it, read it, take it apart, run a table for your friends, build on it for a hobby
+project — all of that is a permitted purpose. Making money from it is not licensed. It is
+a casino, and the one thing it should never become is somebody's income.
+
+Copyright remains with the author. The dependencies keep their own licences, which are
+permissive and unaffected by this one.
