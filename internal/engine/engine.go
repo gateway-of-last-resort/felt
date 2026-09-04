@@ -45,6 +45,11 @@ var (
 	ErrUnknownSeat  = errors.New("no seat at this table")
 	ErrInvalidBet   = errors.New("invalid bet")
 	ErrNothingToBet = errors.New("no bets placed")
+
+	// ErrNoStack is returned when a buy-in is offered to a table that bets
+	// from the wallet. Taking the money and then ignoring it would be worse
+	// than refusing it.
+	ErrNoStack = errors.New("this table has no stacks: bet from the wallet")
 )
 
 // Action is something a player asks the table to do. Placing a bet is an
@@ -99,9 +104,17 @@ type Game interface {
 
 	// Join seats a player, returning the seat they already hold if they are
 	// reconnecting.
-	Join(p PlayerID) (Seat, error)
+	//
+	// buyIn is the stake brought to the table, and it separates the two ways
+	// money can work here. At a table that bets from the wallet — slots,
+	// blackjack, roulette — it is zero and every bet is charged as it is
+	// made. At a table with stacks it is charged once, on sitting down, and
+	// the engine then moves chips between stacks and pots by itself.
+	Join(p PlayerID, buyIn int64) (Seat, error)
 
-	// Leave releases a seat and reports what that changed.
+	// Leave releases a seat and reports what that changed. A table with
+	// stacks reports what is left of the player's as a Refund, so the money
+	// finds its way back to the wallet.
 	Leave(p PlayerID) []Event
 
 	// Apply runs one action against the rules.

@@ -153,14 +153,14 @@ func TestSnapshotTracksLastSpin(t *testing.T) {
 // One machine, one player.
 func TestSeatingIsExclusive(t *testing.T) {
 	tb := testTable()
-	if _, err := tb.Join("a"); err != nil {
+	if _, err := tb.Join("a", 0); err != nil {
 		t.Fatalf("first player refused: %v", err)
 	}
-	if _, err := tb.Join("b"); err == nil {
+	if _, err := tb.Join("b", 0); err == nil {
 		t.Error("a second player was seated at a slot machine")
 	}
 	tb.Leave("a")
-	if _, err := tb.Join("b"); err != nil {
+	if _, err := tb.Join("b", 0); err != nil {
 		t.Errorf("seat not released on leave: %v", err)
 	}
 }
@@ -223,5 +223,17 @@ func TestWinsReportTheirSymbolCount(t *testing.T) {
 					wins[0].Mult, threeOfKind[c.symbol])
 			}
 		})
+	}
+}
+
+// A table that bets from the wallet refuses a buy-in rather than pocketing
+// it. Taking money it has no use for would be the worst of the options.
+func TestBuyInRefused(t *testing.T) {
+	tb := testTable()
+	if _, err := tb.Join(engine.LocalPlayer, 100); err == nil {
+		t.Fatal("a slot machine accepted a buy-in")
+	}
+	if _, err := tb.Join(engine.LocalPlayer, 0); err != nil {
+		t.Errorf("a free seat was refused: %v", err)
 	}
 }

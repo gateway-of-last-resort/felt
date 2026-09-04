@@ -13,7 +13,7 @@ const me = engine.PlayerID("p1")
 func testTable(t *testing.T) *Table {
 	t.Helper()
 	tb := NewTable(rng.NewSeeded([32]byte{3}))
-	if _, err := tb.Join(me); err != nil {
+	if _, err := tb.Join(me, 0); err != nil {
 		t.Fatalf("join: %v", err)
 	}
 	return tb
@@ -238,7 +238,7 @@ func TestLimits(t *testing.T) {
 func TestOtherPlayersChipsAreVisible(t *testing.T) {
 	tb := testTable(t)
 	const them = engine.PlayerID("p2")
-	if _, err := tb.Join(them); err != nil {
+	if _, err := tb.Join(them, 0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -267,7 +267,7 @@ func TestOtherPlayersChipsAreVisible(t *testing.T) {
 func TestLeavingDoesNotAbandonChips(t *testing.T) {
 	tb := testTable(t)
 	const them = engine.PlayerID("p2")
-	if _, err := tb.Join(them); err != nil {
+	if _, err := tb.Join(them, 0); err != nil {
 		t.Fatal(err)
 	}
 	apply(t, tb, PlaceBet{P: them, Spot: straightOn(0), Amount: 4})
@@ -339,5 +339,16 @@ func TestHistoryIsCapped(t *testing.T) {
 	s := snap(t, tb)
 	if len(s.History) != HistoryLength {
 		t.Errorf("history holds %d numbers, want %d", len(s.History), HistoryLength)
+	}
+}
+
+// Roulette bets from the wallet, so there is nothing to buy in with.
+func TestBuyInRefused(t *testing.T) {
+	tb := NewTable(rng.NewSeeded([32]byte{31}))
+	if _, err := tb.Join(me, 50); err == nil {
+		t.Fatal("the wheel accepted a buy-in")
+	}
+	if _, err := tb.Join(me, 0); err != nil {
+		t.Errorf("a free seat was refused: %v", err)
 	}
 }

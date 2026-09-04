@@ -24,6 +24,9 @@ func testModel(t *testing.T, w, h int) Model {
 		t.Fatal(err)
 	}
 	drv := driver.NewLocal(rl.NewTable(rng.NewSeeded([32]byte{9})), ledger, engine.LocalPlayer, nil)
+	if err := drv.Join(0); err != nil {
+		t.Fatalf("taking a seat: %v", err)
+	}
 
 	m := New(drv, games.LocalOptions(), ui.Default())
 	g := m.SetSize(w, h)

@@ -95,13 +95,22 @@ func New(ledger *bank.JSONLedger, settings store.Settings, r *rand.Rand) Model {
 	opts := games.LocalOptions()
 	save := func() { _ = ledger.Save() }
 
+	// Every offline table bets from the wallet, so nobody buys in: the seat
+	// is free and the only way Join can fail is a table that is already
+	// taken, which cannot happen at a table built for one.
+	seat := func(g engine.Game) *driver.Local {
+		d := driver.NewLocal(g, ledger, m.me, save)
+		_ = d.Join(0)
+		return d
+	}
+
 	m.games = map[Screen]games.Game{
 		ScreenSlots: slotsgame.New(
-			driver.NewLocal(slotsengine.NewTable(r), ledger, m.me, save), opts, t, settings.Glyphs),
+			seat(slotsengine.NewTable(r)), opts, t, settings.Glyphs),
 		ScreenBlackjack: bjgame.New(
-			driver.NewLocal(bjengine.NewTable(r, bjengine.Vegas6(), 1), ledger, m.me, save), opts, t),
+			seat(bjengine.NewTable(r, bjengine.Vegas6(), 1)), opts, t),
 		ScreenRoulette: rlgame.New(
-			driver.NewLocal(rlengine.NewTable(r), ledger, m.me, save), opts, t),
+			seat(rlengine.NewTable(r)), opts, t),
 	}
 
 	m.menu = menu.New(m.menuItems(), t)

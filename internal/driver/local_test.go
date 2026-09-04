@@ -20,13 +20,22 @@ type fakeGame struct {
 	events  []engine.Event
 	applied []engine.Action
 	ticks   []engine.Event
+
+	// joinErr and buyIns record how the table was sat down at, which is what
+	// the buy-in path is about.
+	joinErr     error
+	buyIns      []int64
+	leaveEvents []engine.Event
 }
 
-func (g *fakeGame) Kind() engine.Kind                         { return engine.KindSlots }
-func (g *fakeGame) Join(engine.PlayerID) (engine.Seat, error) { return 0, nil }
-func (g *fakeGame) Leave(engine.PlayerID) []engine.Event      { return nil }
-func (g *fakeGame) Deadline() (time.Time, bool)               { return time.Time{}, false }
-func (g *fakeGame) Snapshot(engine.PlayerID) any              { return "snapshot" }
+func (g *fakeGame) Kind() engine.Kind { return engine.KindSlots }
+func (g *fakeGame) Join(_ engine.PlayerID, buyIn int64) (engine.Seat, error) {
+	g.buyIns = append(g.buyIns, buyIn)
+	return 0, g.joinErr
+}
+func (g *fakeGame) Leave(engine.PlayerID) []engine.Event { return g.leaveEvents }
+func (g *fakeGame) Deadline() (time.Time, bool)          { return time.Time{}, false }
+func (g *fakeGame) Snapshot(engine.PlayerID) any         { return "snapshot" }
 
 func (g *fakeGame) Tick(time.Time) []engine.Event { return g.ticks }
 
@@ -301,5 +310,112 @@ func TestNegativeStakeRefused(t *testing.T) {
 	}
 	if len(g.applied) != 0 {
 		t.Error("a negative stake reached the engine")
+	}
+}
+
+// A buy-in is charged once, on sitting down, and handed to the table.
+//
+// This is the second way money works here: a table with stacks takes a stake
+// at the door and then moves chips around by itself, rather than charging for
+// every bet. Offline nothing uses it yet — the path exists so that holdem is
+// new files rather than a change to this one.
+func TestBuyInIsChargedOnJoin(t *testing.T) {
+	l := testLedger(t)
+	g := &fakeGame{}
+	d := NewLocal(g, l, me, nil)
+
+	start := l.Balance(me)
+	if err := d.Join(200); err != nil {
+		t.Fatalf("Join: %v", err)
+	}
+
+	if got, want := l.Balance(me), start-200; got != want {
+		t.Errorf("balance = %d after buying in, want %d", got, want)
+	}
+	if len(g.buyIns) != 1 || g.buyIns[0] != 200 {
+		t.Errorf("the table was told about buy-ins %v, want one of 200", g.buyIns)
+	}
+
+	// And it is not turnover: nothing has been played yet.
+	if s := l.Stats(me); s.Rounds() != 0 {
+		t.Errorf("buying in recorded %d rounds of play", s.Rounds())
+	}
+}
+
+// Sitting down at a table that bets from the wallet costs nothing.
+func TestFreeSeatCostsNothing(t *testing.T) {
+	l := testLedger(t)
+	g := &fakeGame{}
+	d := NewLocal(g, l, me, nil)
+
+	start := l.Balance(me)
+	if err := d.Join(0); err != nil {
+		t.Fatalf("Join: %v", err)
+	}
+	if got := l.Balance(me); got != start {
+		t.Errorf("balance = %d after taking a free seat, want %d", got, start)
+	}
+	if len(g.buyIns) != 1 || g.buyIns[0] != 0 {
+		t.Errorf("the table was told about buy-ins %v, want one of 0", g.buyIns)
+	}
+}
+
+// A buy-in beyond the balance leaves the player standing, and their money
+// alone.
+func TestUnaffordableBuyIn(t *testing.T) {
+	l := testLedger(t)
+	g := &fakeGame{}
+	d := NewLocal(g, l, me, nil)
+
+	start := l.Balance(me)
+	if err := d.Join(start + 1); err == nil {
+		t.Fatal("the player sat down with money they did not have")
+	}
+	if got := l.Balance(me); got != start {
+		t.Errorf("balance = %d after a refused buy-in, want %d", got, start)
+	}
+	if len(g.buyIns) != 0 {
+		t.Error("the table was told about a buy-in that was never paid")
+	}
+}
+
+// If the table turns the player away, the buy-in comes back. Without this a
+// full table would quietly keep the money.
+func TestRefusedSeatRefundsTheBuyIn(t *testing.T) {
+	l := testLedger(t)
+	g := &fakeGame{joinErr: engine.ErrTableFull}
+	d := NewLocal(g, l, me, nil)
+
+	start := l.Balance(me)
+	if err := d.Join(200); err == nil {
+		t.Fatal("Join reported success at a full table")
+	}
+	if got := l.Balance(me); got != start {
+		t.Errorf("balance = %d after being turned away, want the buy-in back at %d", got, start)
+	}
+}
+
+// Whatever is left of a stack comes back as a refund when the player leaves,
+// which is the other half of the buy-in.
+func TestStackComesBackOnLeave(t *testing.T) {
+	l := testLedger(t)
+	g := &fakeGame{}
+	d := NewLocal(g, l, me, nil)
+
+	if err := d.Join(200); err != nil {
+		t.Fatal(err)
+	}
+	before := l.Balance(me)
+
+	// A table with stacks reports what is left as a refund.
+	g.leaveEvents = []engine.Event{refund{amount: 260}}
+	run(t, d.Leave())
+
+	if got, want := l.Balance(me), before+260; got != want {
+		t.Errorf("balance = %d after leaving with 260 in front of us, want %d", got, want)
+	}
+	// A stack coming home is not a played round.
+	if s := l.Stats(me); s.Rounds() != 0 {
+		t.Errorf("returning a stack recorded %d rounds", s.Rounds())
 	}
 }

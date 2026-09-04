@@ -17,7 +17,7 @@ func newStacked(t *testing.T, spec string) *Table {
 	t.Helper()
 	tb := NewTable(rng.NewSeeded([32]byte{7}), Vegas6(), 1)
 	tb.shoe.Stack(cards(spec))
-	if _, err := tb.Join(me); err != nil {
+	if _, err := tb.Join(me, 0); err != nil {
 		t.Fatalf("join: %v", err)
 	}
 	return tb
@@ -439,7 +439,7 @@ func TestRejoinKeepsSeat(t *testing.T) {
 	apply(t, tb, PlaceBet{P: me, Amount: 10})
 
 	tb.Leave(me)
-	seat, err := tb.Join(me)
+	seat, err := tb.Join(me, 0)
 	if err != nil {
 		t.Fatalf("rejoin refused: %v", err)
 	}
@@ -459,7 +459,7 @@ func TestRejoinKeepsSeat(t *testing.T) {
 // that mark before the table had been cleared.
 func TestManyRoundsInARow(t *testing.T) {
 	tb := NewTable(rng.NewSeeded([32]byte{23}), Vegas6(), 1)
-	if _, err := tb.Join(me); err != nil {
+	if _, err := tb.Join(me, 0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -513,5 +513,16 @@ func TestSeatIsFreeAfterSettling(t *testing.T) {
 	}
 	if _, err := tb.Apply(PlaceBet{P: me, Amount: 10}, time.Now()); err != nil {
 		t.Fatalf("the table refused the next bet: %v", err)
+	}
+}
+
+// Blackjack bets from the wallet: no stacks, no buy-in.
+func TestBuyInRefused(t *testing.T) {
+	tb := NewTable(rng.NewSeeded([32]byte{29}), Vegas6(), 1)
+	if _, err := tb.Join(me, 20); err == nil {
+		t.Fatal("the table accepted a buy-in")
+	}
+	if _, err := tb.Join(me, 0); err != nil {
+		t.Errorf("a free seat was refused: %v", err)
 	}
 }

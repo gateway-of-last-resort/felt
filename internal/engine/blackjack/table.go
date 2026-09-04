@@ -302,7 +302,12 @@ func (t *Table) Kind() engine.Kind { return engine.KindBlackjack }
 func (t *Table) Rules() Rules { return t.rules }
 
 // Join satisfies engine.Game, returning an existing seat on reconnect.
-func (t *Table) Join(p engine.PlayerID) (engine.Seat, error) {
+func (t *Table) Join(p engine.PlayerID, buyIn int64) (engine.Seat, error) {
+	// Bets here come from the wallet one at a time, so there is nothing to
+	// buy in with.
+	if buyIn != 0 {
+		return 0, engine.ErrNoStack
+	}
 	if s, i := t.find(p); s != nil {
 		s.present = true
 		return i, nil

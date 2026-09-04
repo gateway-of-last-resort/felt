@@ -193,7 +193,12 @@ func (t *Table) Kind() engine.Kind { return engine.KindRoulette }
 
 // Join satisfies engine.Game. Roulette has no seats: everyone bets at once,
 // so the seat number is only ever an index into who is present.
-func (t *Table) Join(p engine.PlayerID) (engine.Seat, error) {
+func (t *Table) Join(p engine.PlayerID, buyIn int64) (engine.Seat, error) {
+	// Bets here come from the wallet one at a time, so there is nothing to
+	// buy in with.
+	if buyIn != 0 {
+		return 0, engine.ErrNoStack
+	}
 	for i, existing := range t.players {
 		if existing == p {
 			return engine.Seat(i), nil

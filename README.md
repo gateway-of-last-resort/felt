@@ -81,7 +81,10 @@ rewrite:
   same code run in a server room.
 - **The engine never sees a balance.** A bet is a number on a spot. Whoever owns the
   ledger — `driver.Local` here, a room later — debits the stake *before* the action is
-  applied, and refunds it if the engine refuses.
+  applied, and refunds it if the engine refuses. There are two ways money reaches a
+  table: bet by bet from the wallet, as all three games here do, or once at the door as
+  a buy-in, which is how holdem will work — the engine then moves chips between stacks
+  and pots itself, and hands back what is left when the player stands up.
 - **The presentation only knows Snapshots and events.** Whether they came from a
   goroutine next door or a machine across the room is not its business.
 - **Results are decided before they are animated.** The engine deals a whole blackjack

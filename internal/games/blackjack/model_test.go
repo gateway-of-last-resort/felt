@@ -25,6 +25,9 @@ func testModel(t *testing.T, w, h int) (Model, *driver.Local) {
 	}
 	table := bj.NewTable(rng.NewSeeded([32]byte{11}), bj.Vegas6(), 1)
 	drv := driver.NewLocal(table, ledger, engine.LocalPlayer, nil)
+	if err := drv.Join(0); err != nil {
+		t.Fatalf("taking a seat: %v", err)
+	}
 
 	m := New(drv, games.LocalOptions(), ui.Default())
 	return m.SetSize(w, h).(Model), drv

@@ -23,10 +23,34 @@ type Local struct {
 	onSettle func()
 }
 
-// NewLocal seats a player at a game.
+// NewLocal wires a game to a wallet. It does not seat anybody: call Join for
+// that, because taking a seat can cost money and can therefore fail.
 func NewLocal(g engine.Game, l bank.Ledger, me engine.PlayerID, onSettle func()) *Local {
-	_, _ = g.Join(me)
 	return &Local{game: g, ledger: l, me: me, onSettle: onSettle}
+}
+
+// Join seats the player, charging buyIn if the table has stacks.
+//
+// The money is taken before the seat is asked for, and returned if the table
+// refuses — the same order as a bet, and for the same reason: the engine must
+// never be handed a stake that was not paid for.
+func (d *Local) Join(buyIn int64) error {
+	if buyIn < 0 {
+		return engine.ErrInvalidBet
+	}
+	if buyIn > 0 {
+		if err := d.ledger.Debit(d.me, buyIn); err != nil {
+			return err
+		}
+	}
+
+	if _, err := d.game.Join(d.me, buyIn); err != nil {
+		if buyIn > 0 {
+			_ = d.ledger.Credit(d.me, buyIn)
+		}
+		return err
+	}
+	return nil
 }
 
 // Me satisfies Driver.
