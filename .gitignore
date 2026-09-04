@@ -1,0 +1,13 @@
+# Build output
+bin/
+felt.log
+demo.gif
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Specs live locally: they are working notes, not part of the project
+felt-spec.md
+felt-spec-v2.md
