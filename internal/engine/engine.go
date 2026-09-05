@@ -31,9 +31,10 @@ type Kind string
 
 // The games.
 const (
-	KindSlots     Kind = "slots"
-	KindBlackjack Kind = "blackjack"
-	KindRoulette  Kind = "roulette"
+	KindSlots      Kind = "slots"
+	KindBlackjack  Kind = "blackjack"
+	KindRoulette   Kind = "roulette"
+	KindVideoPoker Kind = "videopoker"
 )
 
 // Errors an engine may return from Apply.
