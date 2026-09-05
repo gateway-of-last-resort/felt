@@ -287,24 +287,25 @@ func (m Model) retheme(isDark bool) (Model, tea.Cmd) {
 // globalKey handles the bindings that work on every screen, reporting whether
 // it consumed the key.
 func (m Model) globalKey(msg tea.KeyPressMsg) (bool, Model, tea.Cmd) {
+	// A game in a modal state — a bet being typed, an overlay open — owns the
+	// keyboard until it says otherwise. This is checked before quitting so
+	// that typing a "q" into a bet field does not close the program.
+	game, atTable := m.games[m.screen]
+	if atTable && game.Modal() {
+		return false, m, nil
+	}
+
 	if key.Matches(msg, m.keys.Quit) {
-		// q quits only where it cannot be mistaken for a game key; ctrl+c
-		// always does.
-		if msg.String() == "q" && m.screen != ScreenMenu {
-			return false, m, nil
+		// ctrl+c always quits. q quits too, but not with a round in progress,
+		// where it is far more likely to be a mis-hit than an instruction.
+		if msg.String() == "q" && atTable && game.Busy() {
+			return true, m, games.Toast("finish the round first", ui.Info)
 		}
 		return true, m, tea.Quit
 	}
 
 	if m.screen == ScreenBankrupt {
 		return m.bankruptKey(msg)
-	}
-
-	// A game in a modal state — a bet being typed, an overlay open — owns the
-	// keyboard until it says otherwise. Without this the root would swallow
-	// the esc that closes the overlay.
-	if g, ok := m.games[m.screen]; ok && g.Modal() {
-		return false, m, nil
 	}
 
 	switch {
@@ -320,7 +321,7 @@ func (m Model) globalKey(msg tea.KeyPressMsg) (bool, Model, tea.Cmd) {
 		if m.screen == ScreenMenu {
 			return true, m, nil
 		}
-		if g, ok := m.games[m.screen]; ok && g.Busy() {
+		if atTable && game.Busy() {
 			// Leaving mid-round would strand a stake, so the door stays shut
 			// until the table is idle.
 			return true, m, games.Toast("finish the round first", ui.Info)

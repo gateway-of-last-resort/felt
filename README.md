@@ -42,9 +42,10 @@ rather than shearing the table.
 | `↑ ↓ ← →` | move |
 | `enter` | select |
 | `esc` | back to the menu — refused with money on the table |
+| `q` | quit — refused mid-round, and never while typing a bet |
 | `S` | statistics |
 | `?` | help |
-| `ctrl+c` | quit and save |
+| `ctrl+c` | quit and save, from anywhere |
 
 | Key | Slots | Blackjack | Roulette | Video poker |
 |---|---|---|---|---|

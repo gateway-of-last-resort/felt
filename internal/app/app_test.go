@@ -382,3 +382,58 @@ func stripANSI(s string) string {
 	}
 	return b.String()
 }
+
+// q leaves a table between rounds, but not with money on it, and never while
+// a bet is being typed.
+func TestQuitKeyAtATable(t *testing.T) {
+	m := testModel(t, 1000)
+	m.screen = ScreenSlots
+
+	// Idle: q quits.
+	m.games[ScreenSlots] = idleGame{}
+	handled, _, cmd := m.globalKey(press("q"))
+	if !handled || cmd == nil {
+		t.Fatal("q did nothing at an idle table")
+	}
+	if msg := cmd(); msg == nil {
+		t.Error("q produced no quit")
+	}
+
+	// Mid-round: q is refused, with a reason.
+	m.games[ScreenSlots] = busyGame{}
+	handled, next, cmd := m.globalKey(press("q"))
+	if !handled {
+		t.Fatal("q was passed through to a busy game")
+	}
+	if next.screen != ScreenSlots {
+		t.Error("q left a busy table")
+	}
+	if _, isToast := cmd().(games.ToastMsg); !isToast {
+		t.Error("q mid-round said nothing about why it was refused")
+	}
+
+	// Typing a bet: q is a letter, not a command.
+	m.games[ScreenSlots] = modalGame{}
+	if handled, _, _ := m.globalKey(press("q")); handled {
+		t.Error("q quit while a bet was being typed")
+	}
+}
+
+// ctrl+c always quits, even mid-round.
+func TestCtrlCAlwaysQuits(t *testing.T) {
+	m := testModel(t, 1000)
+	m.screen = ScreenSlots
+	m.games[ScreenSlots] = busyGame{}
+
+	handled, _, cmd := m.globalKey(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
+	if !handled || cmd == nil {
+		t.Fatal("ctrl+c did not quit a busy table")
+	}
+}
+
+type idleGame struct{ busyGame }
+
+func (idleGame) Busy() bool                     { return false }
+func (g idleGame) Reset() games.Game            { return g }
+func (g idleGame) SetTheme(ui.Theme) games.Game { return g }
+func (g idleGame) SetSize(int, int) games.Game  { return g }

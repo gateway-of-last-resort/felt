@@ -84,6 +84,12 @@ type Model struct {
 	shown     dealState
 	finalSnap bj.Snapshot
 
+	// playing marks a round being replayed. While it is set the screen draws
+	// only what it has turned over: the snapshot already holds the finished
+	// round, so falling back to it mid-deal shows the *previous* hand — the
+	// dealer's cards from last time, sitting there before they are dealt any.
+	playing bool
+
 	bet     int64
 	betIn   textinput.Model
 	editing bool
@@ -158,7 +164,7 @@ func (m Model) Title() string { return "Blackjack" }
 // the root will not let the player walk away from it — not only during an
 // animation, but for the whole round.
 func (m Model) Busy() bool {
-	if len(m.pending) > 0 {
+	if len(m.pending) > 0 || m.playing {
 		return true
 	}
 	switch m.snap.Phase {
@@ -197,7 +203,7 @@ func (m Model) inBetting() bool {
 
 // Help satisfies games.Game, listing only what can be pressed right now.
 func (m Model) Help() []key.Binding {
-	if len(m.pending) > 0 {
+	if m.playing {
 		return nil
 	}
 	switch m.snap.Phase {
@@ -290,7 +296,7 @@ func (m Model) events(msg driver.EventsMsg) (Model, tea.Cmd) {
 		if s, ok := msg.Snapshot.(bj.Snapshot); ok {
 			m.snap = s
 		}
-		m.shown = newDealState()
+		m.shown, m.playing = newDealState(), false
 		return m, nil
 	}
 
@@ -301,6 +307,7 @@ func (m Model) events(msg driver.EventsMsg) (Model, tea.Cmd) {
 	if len(m.pending) == 0 {
 		return m, nil
 	}
+	m.playing = true
 	return m.reveal()
 }
 
@@ -308,7 +315,7 @@ func (m Model) events(msg driver.EventsMsg) (Model, tea.Cmd) {
 func (m Model) reveal() (Model, tea.Cmd) {
 	if len(m.pending) == 0 {
 		// Everything has been shown, so the real snapshot can take over.
-		m.snap = m.finalSnap
+		m.snap, m.playing = m.finalSnap, false
 		return m, nil
 	}
 
@@ -365,7 +372,7 @@ func (m Model) reveal() (Model, tea.Cmd) {
 	}
 
 	if len(m.pending) == 0 {
-		m.snap = m.finalSnap
+		m.snap, m.playing = m.finalSnap, false
 		return m, nil
 	}
 	if delay <= 0 {
@@ -463,7 +470,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	}
 	// While a round is being dealt the table takes no input: the player would
 	// be acting on cards they cannot see yet.
-	if len(m.pending) > 0 {
+	if m.playing {
 		return m, nil
 	}
 

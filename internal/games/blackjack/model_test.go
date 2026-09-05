@@ -224,3 +224,83 @@ func TestEnterDealsTheNextHand(t *testing.T) {
 		m = g.(Model)
 	}
 }
+
+// While a round is being dealt the screen shows only what it has turned over.
+//
+// The snapshot already holds the finished round, so reading from it mid-deal
+// showed the *previous* hand: the dealer's cards from the round before,
+// sitting on the table before they had been dealt a single one.
+func TestPreviousHandDoesNotLinger(t *testing.T) {
+	m, drv := testModel(t, 120, 30)
+
+	// Play a round out, so there is a hand that could leak into the next.
+	m = playOut(t, m, drv)
+	if len(m.dealerCards()) == 0 {
+		t.Fatal("the first round dealt the dealer nothing")
+	}
+
+	// Start the next one. The instant its events arrive the table must be
+	// bare, not still showing the last hand.
+	g, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	m = g.(Model)
+	if cmd == nil {
+		t.Fatal("enter did not deal")
+	}
+	msg := cmd()
+	if err, ok := msg.(driver.ErrorMsg); ok {
+		t.Fatalf("the next deal was refused: %v", err.Err)
+	}
+	g, _ = m.Update(msg)
+	m = g.(Model)
+
+	if got := len(m.dealerCards()); got != 0 {
+		t.Errorf("the dealer shows %d cards before being dealt any", got)
+	}
+	if got := len(m.myHands()); got != 0 {
+		t.Errorf("the player shows %d hands before being dealt any", got)
+	}
+
+	// And they arrive one at a time.
+	g, _ = m.Update(revealMsg{})
+	m = g.(Model)
+	if got := len(m.myHands()); got != 1 {
+		t.Fatalf("after one reveal the player has %d hands, want 1", got)
+	}
+	if got := len(m.myHands()[0].Cards); got != 1 {
+		t.Errorf("after one reveal the player shows %d cards, want 1", got)
+	}
+}
+
+// playOut deals a round and plays it to settlement, standing on everything.
+func playOut(t *testing.T, m Model, drv *driver.Local) Model {
+	t.Helper()
+
+	m = deal(t, m, drv)
+	for i := 0; i < 60 && m.playing; i++ {
+		g, _ := m.Update(revealMsg{})
+		m = g.(Model)
+	}
+
+	for i := 0; i < 30 && m.snap.Phase != bj.PhaseSettle; i++ {
+		key := "s"
+		if m.snap.Phase == bj.PhaseInsurance {
+			key = "n"
+		}
+		g, cmd := m.Update(tea.KeyPressMsg{Code: rune(key[0]), Text: key})
+		m = g.(Model)
+		if cmd == nil {
+			break
+		}
+		g, _ = m.Update(cmd())
+		m = g.(Model)
+		for j := 0; j < 60 && m.playing; j++ {
+			g, _ = m.Update(revealMsg{})
+			m = g.(Model)
+		}
+	}
+
+	if m.snap.Phase != bj.PhaseSettle {
+		t.Fatalf("the round did not settle, phase = %v", m.snap.Phase)
+	}
+	return m
+}

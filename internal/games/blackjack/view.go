@@ -101,7 +101,7 @@ func (m Model) tableView() string {
 // screen. During playback that is what has been revealed so far, not what the
 // engine knows.
 func (m Model) holeDown() bool {
-	if len(m.pending) > 0 || len(m.shown.dealer) > 0 {
+	if m.playing {
 		return !m.shown.holeShown && len(m.shown.dealer) > 1
 	}
 	return m.snap.HoleHidden
@@ -109,7 +109,7 @@ func (m Model) holeDown() bool {
 
 // dealerCards is what the dealer has on screen right now.
 func (m Model) dealerCards() []deck.Card {
-	if len(m.shown.dealer) > 0 {
+	if m.playing {
 		return m.shown.dealer
 	}
 	return m.snap.Dealer.Cards
@@ -166,7 +166,7 @@ func (m Model) myHands() []bj.HandView {
 	}
 
 	shown := m.shown.seats[seat.Seat]
-	if len(m.pending) == 0 && len(shown) == 0 {
+	if !m.playing {
 		return seat.Hands
 	}
 
@@ -260,7 +260,7 @@ func (m Model) handLine(h bj.HandView, i, n int) string {
 }
 
 func (m Model) isActive(hand int) bool {
-	if m.snap.Phase != bj.PhasePlayerTurn || len(m.pending) > 0 {
+	if m.snap.Phase != bj.PhasePlayerTurn || m.playing {
 		return false
 	}
 	seat, ok := m.mySeat()
@@ -326,7 +326,7 @@ func (m Model) outcomeLabel(h bj.HandView) string {
 func (m Model) promptView() string {
 	t := m.theme
 
-	if len(m.pending) > 0 {
+	if m.playing {
 		return t.Dim.Render("dealing…")
 	}
 
