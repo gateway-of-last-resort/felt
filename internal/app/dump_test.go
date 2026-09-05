@@ -17,7 +17,7 @@ func TestDumpFrames(t *testing.T) {
 	m := testModel(t, 1000)
 	m, _ = m.update(tea.WindowSizeMsg{Width: 110, Height: 34})
 
-	for _, s := range []Screen{ScreenMenu, ScreenSlots, ScreenRoulette, ScreenBlackjack, ScreenStats} {
+	for _, s := range []Screen{ScreenMenu, ScreenVideoPoker, ScreenStats} {
 		m.screen = s
 		if s == ScreenStats {
 			m.statsTable.SetRows(m.statsRows())

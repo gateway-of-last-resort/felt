@@ -15,12 +15,14 @@ import (
 	"github.com/gateway-of-last-resort/felt/internal/driver"
 	"github.com/gateway-of-last-resort/felt/internal/engine"
 	bjengine "github.com/gateway-of-last-resort/felt/internal/engine/blackjack"
+	videoengine "github.com/gateway-of-last-resort/felt/internal/engine/poker/video"
 	rlengine "github.com/gateway-of-last-resort/felt/internal/engine/roulette"
 	slotsengine "github.com/gateway-of-last-resort/felt/internal/engine/slots"
 	"github.com/gateway-of-last-resort/felt/internal/games"
 	bjgame "github.com/gateway-of-last-resort/felt/internal/games/blackjack"
 	rlgame "github.com/gateway-of-last-resort/felt/internal/games/roulette"
 	slotsgame "github.com/gateway-of-last-resort/felt/internal/games/slots"
+	vpgame "github.com/gateway-of-last-resort/felt/internal/games/videopoker"
 	"github.com/gateway-of-last-resort/felt/internal/menu"
 	"github.com/gateway-of-last-resort/felt/internal/online"
 	"github.com/gateway-of-last-resort/felt/internal/store"
@@ -111,6 +113,8 @@ func New(ledger *bank.JSONLedger, settings store.Settings, r *rand.Rand) Model {
 			seat(bjengine.NewTable(r, bjengine.Vegas6(), 1)), opts, t),
 		ScreenRoulette: rlgame.New(
 			seat(rlengine.NewTable(r)), opts, t),
+		ScreenVideoPoker: vpgame.New(
+			seat(videoengine.NewTable(r)), opts, t),
 	}
 
 	m.menu = menu.New(m.menuItems(), t)
@@ -137,6 +141,12 @@ func (m Model) menuItems() []menu.Item {
 			Key: "roulette", Name: "Roulette",
 			Desc:   "Single zero. The house keeps 2.70% and never hurries.",
 			MinBet: 1, RTP: 0.973, Ready: true,
+		},
+		{
+			Key: "videopoker", Name: "Video Poker",
+			Desc: "Jacks or Better, 9/6. Five cards, hold what you like, draw once.",
+			// The textbook return for this schedule played perfectly.
+			MinBet: 1, RTP: 0.995, Ready: true,
 		},
 		m.onlineItem(),
 		{Key: "stats", Name: "Statistics", Desc: "What the session has actually cost you.", Ready: true},
@@ -347,11 +357,12 @@ func (m Model) openSelected() (Model, tea.Cmd) {
 	}
 
 	target, ok := map[string]Screen{
-		"slots":     ScreenSlots,
-		"blackjack": ScreenBlackjack,
-		"roulette":  ScreenRoulette,
-		"stats":     ScreenStats,
-		"help":      ScreenHelp,
+		"slots":      ScreenSlots,
+		"blackjack":  ScreenBlackjack,
+		"roulette":   ScreenRoulette,
+		"videopoker": ScreenVideoPoker,
+		"stats":      ScreenStats,
+		"help":       ScreenHelp,
 	}[it.Key]
 	if !ok {
 		return m, nil

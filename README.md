@@ -18,8 +18,9 @@ second — shared tables over SSH — is new files rather than a rewrite.
 | 1 | Slots — spring-braked reels, five paylines, paytable | done |
 | 2 | Blackjack — six decks, splits, insurance, surrender | done |
 | 3 | Roulette — the full betting layout, cursor, ball | done |
-| 4 | Statistics, help, demo recording | help and stats done |
-| 5–12 | `feltd`: rooms, shared tables, server wallet | not started |
+| 4 | Video poker — Jacks or Better, 9/6 | done |
+| 5 | Statistics, help, demo recording | help and stats done |
+| 6+ | `feltd`: rooms, shared tables, holdem | not started |
 
 ## Running
 
@@ -45,19 +46,21 @@ rather than shearing the table.
 | `?` | help |
 | `ctrl+c` | quit and save |
 
-| Key | Slots | Blackjack | Roulette |
-|---|---|---|---|
-| `space` | spin, or skip the animation | — | place a chip, or skip the ball |
-| `enter` | — | deal, next hand | spin |
-| `← →` | stake per line | stake (`1`–`4` quick, `b` type) | move |
-| `↑ ↓` | active lines | — | move |
-| `h` `s` | — | hit, stand | — |
-| `d` `p` `u` | — | double, split, surrender | — |
-| `i` `n` | — | take or decline insurance | — |
-| `+` `-` | — | — | chip value |
-| `backspace` | — | — | take the chip back |
-| `r` `c` | — | — | repeat last bets, clear |
-| `p` `g` | paytable, symbol set | — | — |
+| Key | Slots | Blackjack | Roulette | Video poker |
+|---|---|---|---|---|
+| `space` | spin, or skip | — | place a chip, or skip | hold the card |
+| `enter` | — | deal, next hand | spin | deal, then draw |
+| `← →` | stake per line | stake (`1`–`4`, `b` type) | move | move |
+| `↑ ↓` | active lines | — | move | coins |
+| `1`–`5` | — | quick stake | — | hold that card |
+| `h` `s` | — | hit, stand | — | — |
+| `d` `p` `u` | — | double, split, surrender | — | — |
+| `i` `n` | — | insurance | — | — |
+| `+` `-` | — | — | chip value | coins |
+| `m` | — | — | — | max bet and deal |
+| `backspace` | — | — | take the chip back | — |
+| `r` `c` | — | — | repeat, clear | — |
+| `p` `g` | paytable, symbols | — | — | — |
 
 ## Architecture
 
@@ -136,13 +139,29 @@ a chip can land on a border. Spots are generated from a half-grid — even coord
 cell centres, odd ones the boundaries — and what a spot covers falls out of which cells
 it touches. A test walks the cursor over every spot at every supported size.
 
+## Video poker
+
+Jacks or Better on the 9/6 schedule — a full house pays 9 and a flush 6, per coin. Those
+two lines are what a casino shaves to set the return: 9/6 pays 99.5% to perfect play,
+8/5 barely 97%. A royal pays 250 a coin, or 800 at five coins, which is the only reason
+to bet the maximum.
+
+The evaluator behind it is shared with holdem, so it is tested harder than the game
+needs: one test walks all 2,598,960 five-card hands and checks the count of each
+category against the known frequencies.
+
+`EV` computes the exact expectation of any hold by enumerating every possible draw —
+1,533,939 of them in the worst case, under a second. That makes the strategy testable
+rather than merely plausible: a test asserts that a made flush containing four to the
+royal should be broken, which is the first decision to flip if a payout is ever mistyped.
+
 ## Layout
 
 ```
 cmd/felt/            client entry point
 internal/
   app/               root model — routing, theme, chrome, the Online item
-  engine/            pure rules: slots, blackjack, roulette
+  engine/            pure rules: slots, blackjack, roulette, poker
   driver/            Local — the engine plus the wallet, in this process
   games/             presentation — one model per table
   online/            reachability check, client key, the ssh exec

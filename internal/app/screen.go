@@ -9,6 +9,7 @@ const (
 	ScreenSlots
 	ScreenBlackjack
 	ScreenRoulette
+	ScreenVideoPoker
 	ScreenStats
 	ScreenHelp
 	ScreenBankrupt
@@ -23,6 +24,8 @@ func (s Screen) String() string {
 		return "Blackjack"
 	case ScreenRoulette:
 		return "Roulette"
+	case ScreenVideoPoker:
+		return "Video Poker"
 	case ScreenStats:
 		return "Statistics"
 	case ScreenHelp:
@@ -35,7 +38,8 @@ func (s Screen) String() string {
 }
 
 func isGame(s Screen) bool {
-	return s == ScreenSlots || s == ScreenBlackjack || s == ScreenRoulette
+	return s == ScreenSlots || s == ScreenBlackjack ||
+		s == ScreenRoulette || s == ScreenVideoPoker
 }
 
 func isOverlay(s Screen) bool {

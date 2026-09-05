@@ -159,6 +159,7 @@ func (m Model) statsRows() []table.Row {
 		{engine.KindSlots, "Slots"},
 		{engine.KindBlackjack, "Blackjack"},
 		{engine.KindRoulette, "Roulette"},
+		{engine.KindVideoPoker, "Video Poker"},
 	}
 
 	rows := make([]table.Row, 0, len(games)+1)
@@ -198,7 +199,7 @@ func (m Model) statsRows() []table.Row {
 // statsColumns is the shape of the statistics table.
 func statsColumns() []table.Column {
 	return []table.Column{
-		{Title: "Game", Width: 10},
+		{Title: "Game", Width: 12}, // "Video Poker" is the longest name
 		{Title: "Rounds", Width: 7},
 		{Title: "Wagered", Width: 10},
 		{Title: "Returned", Width: 10},
@@ -342,21 +343,31 @@ func (m Model) helpContent() string {
 		[2]string{"r  c", "repeat last bets  ·  clear"},
 	)
 
+	pokerKeys := section("Video poker",
+		[2]string{"enter", "deal, then draw"},
+		[2]string{"1 - 5", "hold a card"},
+		[2]string{"← → space", "move and hold"},
+		[2]string{"+ -", "coins  ·  m for max bet"},
+	)
+
 	house := section("House edge",
 		[2]string{"Slots", fmt.Sprintf("%s — returns %s over the long run",
 			ui.Percent(1-slotsengine.TheoreticalRTP()), ui.Percent(slotsengine.TheoreticalRTP()))},
 		[2]string{"Blackjack", "~0.5% with basic strategy; insurance costs 5.9%"},
 		[2]string{"Roulette", "2.70% on every bet, the zero included"},
+		[2]string{"Video poker", "0.5% at 9/6 played perfectly; bet five coins"},
 	)
 
 	var keys string
 	switch {
 	case m.width >= 140:
-		keys = ui.Stack(ui.Row(4, global, slotKeys, blackjackKeys), "", rouletteKeys)
+		keys = ui.Stack(
+			ui.Row(4, global, slotKeys, blackjackKeys), "",
+			ui.Row(4, rouletteKeys, pokerKeys))
 	case m.width >= 96:
-		keys = ui.Stack(ui.Row(4, global, slotKeys), "", blackjackKeys, "", rouletteKeys)
+		keys = ui.Stack(ui.Row(4, global, slotKeys), "", blackjackKeys, "", rouletteKeys, "", pokerKeys)
 	default:
-		keys = ui.Stack(global, "", slotKeys, "", blackjackKeys, "", rouletteKeys)
+		keys = ui.Stack(global, "", slotKeys, "", blackjackKeys, "", rouletteKeys, "", pokerKeys)
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,

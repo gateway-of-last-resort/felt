@@ -55,7 +55,7 @@ func TestViewFitsTerminal(t *testing.T) {
 		{70, 20},  // below minimum: the resize notice
 	}
 	screens := []Screen{
-		ScreenMenu, ScreenSlots, ScreenBlackjack, ScreenRoulette,
+		ScreenMenu, ScreenSlots, ScreenBlackjack, ScreenRoulette, ScreenVideoPoker,
 		ScreenStats, ScreenHelp, ScreenBankrupt,
 	}
 
@@ -304,7 +304,7 @@ func TestStatsSurviveTheThemeMessage(t *testing.T) {
 
 	m, _ = m.switchTo(ScreenStats)
 	view := m.View().Content
-	for _, want := range []string{"Slots", "Blackjack", "Roulette", "All"} {
+	for _, want := range []string{"Slots", "Blackjack", "Roulette", "Video Poker", "All"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the statistics screen does not list %q", want)
 		}
