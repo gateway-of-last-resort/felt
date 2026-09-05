@@ -22,7 +22,17 @@ second — shared tables over SSH — is new files rather than a rewrite.
 | 5 | Statistics, help, demo recording | help and stats done |
 | 6+ | `feltd`: rooms, shared tables, holdem | not started |
 
-## Running
+## Installing
+
+Grab the archive for your machine from
+[releases](https://github.com/gateway-of-last-resort/felt/releases), unpack it, and run
+`felt`. There is nothing to install and no runtime to have: it is one static binary, for
+macOS, Linux and Windows, on both Intel and ARM.
+
+`felt --version` reports the build, which is the first thing worth pasting into a bug
+report.
+
+## Running from source
 
 ```bash
 go run ./cmd/felt
@@ -174,11 +184,17 @@ internal/
 ## Development
 
 ```bash
-make test    # go test ./... -race
-make lint    # golangci-lint
-make rtp     # print the machine's exact return and the roulette edge
-make tape    # record demo.gif with vhs
+make test      # go test ./... -race
+make short     # skips the two exhaustive sweeps
+make lint      # golangci-lint
+make rtp       # print the machine's exact return and the roulette edge
+make snapshot  # build every platform's archive, publishing nothing
+make tape      # record demo.gif with vhs
 ```
+
+Releasing is a tag: `git tag -s v0.1.0 -m "felt v0.1.0" && git push origin v0.1.0`. The
+workflow builds the archives and puts them on the releases page, with the version stamped
+into each binary at link time.
 
 To look at a screen without launching anything:
 

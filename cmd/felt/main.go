@@ -11,6 +11,7 @@ import (
 	"github.com/gateway-of-last-resort/felt/internal/bank"
 	"github.com/gateway-of-last-resort/felt/internal/rng"
 	"github.com/gateway-of-last-resort/felt/internal/store"
+	"github.com/gateway-of-last-resort/felt/internal/version"
 )
 
 func main() {
@@ -18,7 +19,13 @@ func main() {
 	server := flag.String("server", "", "address of a felt server, host:port")
 	reset := flag.Bool("reset", false, "delete the wallet and settings, and start over")
 	debug := flag.Bool("debug", false, "write a debug log to felt.log")
+	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version.Full())
+		return
+	}
 
 	if err := run(*bankroll, *server, *reset, *debug); err != nil {
 		fmt.Fprintln(os.Stderr, "felt:", err)

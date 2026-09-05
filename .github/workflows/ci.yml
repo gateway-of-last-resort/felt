@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # The game is a terminal program: it is worth knowing it builds and
+        # passes on the three platforms it ships for.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - run: go build ./...
+      - run: go test ./... -race
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Not `stable`, unlike the test job. golangci-lint carries its own type
+      # checker, built against a particular Go release, and it cannot parse a
+      # standard library newer than that one — it fails inside crypto and
+      # math/rand rather than in this code. Pinning to the version in go.mod
+      # keeps the linter and the library it reads in step.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      # v6 of the action only knows how to run golangci-lint v1; this project
+      # lints with v2, which needs v9. The linter version is pinned rather
+      # than tracked: a new release adding a check should fail on a commit
+      # that raises it, not on the next unrelated push.
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2

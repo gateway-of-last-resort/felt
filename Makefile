@@ -1,6 +1,6 @@
 BIN := bin/felt
 
-.PHONY: run build test race lint rtp tape clean
+.PHONY: run build test short race lint rtp tape snapshot release-check clean
 
 run:
 	go run ./cmd/felt
@@ -25,5 +25,13 @@ rtp:
 tape: build
 	vhs demo.tape
 
+# Build every platform's archive without publishing anything.
+snapshot:
+	goreleaser release --snapshot --clean
+
+# Check the release config without building.
+release-check:
+	goreleaser check
+
 clean:
-	rm -rf bin felt.log demo.gif
+	rm -rf bin dist felt.log demo.gif

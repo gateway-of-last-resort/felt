@@ -37,9 +37,13 @@ const (
 	minHeight = 24
 )
 
-// menuHeaderHeight is the title block above the list, which the list has to
-// be sized short by or the menu overruns its area.
-const menuHeaderHeight = 4
+// The menu screen is a title block, the list, and a footer carrying the build
+// and the repository. The list is sized short by both, or it fills the area
+// and pushes the footer off the bottom.
+const (
+	menuHeaderHeight = 4
+	menuFooterHeight = 2
+)
 
 // chromeHeight is what the root reserves around a screen: the balance bar, a
 // rule, the toast slot and the help line. The toast slot stays open even when
@@ -259,7 +263,7 @@ func (m Model) resize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	bodyW := msg.Width
 	bodyH := maxInt(msg.Height-chromeHeight, 1)
 
-	m.menu.SetSize(bodyW, maxInt(bodyH-menuHeaderHeight, 3))
+	m.menu.SetSize(bodyW, maxInt(bodyH-menuHeaderHeight-menuFooterHeight, 3))
 	m.statsTable.SetWidth(minInt(bodyW-4, statsWidth()))
 	m.statsTable.SetHeight(maxInt(minInt(bodyH-6, 12), 3))
 	m.helpVP.SetWidth(maxInt(bodyW-4, 20))

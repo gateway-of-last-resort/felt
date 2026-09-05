@@ -1,0 +1,37 @@
+# Tag a version and push the tag; this builds the archives and puts them on
+# the releases page.
+#
+#   git tag -s v0.1.0 -m "felt v0.1.0"
+#   git push origin v0.1.0
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  # GoReleaser needs this to create the release and upload the archives.
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GoReleaser builds the changelog from history, so it needs all of
+          # it rather than the single commit a default checkout gives.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

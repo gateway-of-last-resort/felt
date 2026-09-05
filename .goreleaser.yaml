@@ -1,0 +1,91 @@
+# GoReleaser builds the binaries a friend can download and run.
+#
+# Tag a release and push the tag; the workflow does the rest. The version is
+# stamped into the binary at link time, so `felt --version` reports what is
+# actually running rather than whatever was last typed into a constant.
+version: 2
+
+project_name: felt
+
+before:
+  hooks:
+    - go mod tidy
+    # -short skips the two exhaustive sweeps: they are worth running, but not
+    # between a tag and a release.
+    - go test ./... -short
+
+builds:
+  - id: felt
+    main: ./cmd/felt
+    binary: felt
+    # No cgo: one static binary per platform, and cross-compiling stays
+    # boring.
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/gateway-of-last-resort/felt/internal/version.Version={{ .Version }}
+      - -X github.com/gateway-of-last-resort/felt/internal/version.Commit={{ .FullCommit }}
+      - -X github.com/gateway-of-last-resort/felt/internal/version.Date={{ .CommitDate }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: felt
+    # Zip on Windows, where tar is not a given; tarballs everywhere else.
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  # Read the commits through the GitHub API rather than from git alone: it is
+  # what supplies the author's account name.
+  use: github
+  sort: asc
+
+  # The entry is spelled out rather than left to the default, which in this
+  # version of GoReleaser prints a full forty-character hash and the author's
+  # email address — the first is unreadable in a list, the second does not
+  # belong in a public release. Falls back to the author's name when the API
+  # gives no account, which is what happens on a local run with no token.
+  abbrev: 7
+  format: "{{ .SHA }}: {{ .Message }} ({{ with .AuthorUsername }}@{{ . }}{{ else }}{{ .AuthorName }}{{ end }})"
+
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  draft: false
+  prerelease: auto
+  header: |
+    ## felt {{ .Tag }}
+
+    Download the archive for your machine, unpack it, and run `felt`.
+    A terminal at least 80×24 is required; 160×40 is what it is drawn for.
+  footer: |
+    ---
+
+    Built from {{ .FullCommit }}.

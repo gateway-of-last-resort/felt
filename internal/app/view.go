@@ -11,6 +11,7 @@ import (
 	"github.com/gateway-of-last-resort/felt/internal/engine"
 	slotsengine "github.com/gateway-of-last-resort/felt/internal/engine/slots"
 	"github.com/gateway-of-last-resort/felt/internal/ui"
+	"github.com/gateway-of-last-resort/felt/internal/version"
 )
 
 // View satisfies tea.Model.
@@ -109,11 +110,28 @@ func (m Model) screenBody() string {
 func (m Model) menuView() string {
 	t := m.theme
 	width := minInt(m.width-8, 72)
-	return lipgloss.JoinVertical(lipgloss.Center,
+
+	body := lipgloss.JoinVertical(lipgloss.Center,
 		t.Title.Render("F E L T"),
 		t.Dim.Render("a terminal casino"),
 		"",
 		lipgloss.NewStyle().Width(width).Render(m.menu.View()),
+	)
+
+	// The build and where to report it, sat at the foot of the screen. It is
+	// the first thing anyone needs when a friend says "it crashed".
+	footer := t.Dim.Render(version.String() + "   ·   " + version.Repo)
+
+	// Centre the menu in what is left above the footer, so the footer lands on
+	// the bottom row of the body area rather than under the list.
+	area := maxInt(m.height-chromeHeight, 1)
+	if lipgloss.Height(body)+2 > area {
+		// Too short to hold both: the menu wins.
+		return body
+	}
+	return lipgloss.JoinVertical(lipgloss.Center,
+		lipgloss.Place(m.width, area-1, lipgloss.Center, lipgloss.Center, body),
+		footer,
 	)
 }
 
