@@ -314,14 +314,13 @@ func (m Model) finish() (Model, tea.Cmd) {
 	m.winIdx = -1
 	m.state = stateResult
 
-	var cmds []tea.Cmd
-	switch {
-	case m.totalWin >= m.wagered*20 && m.totalWin > 0:
-		cmds = append(cmds, games.Toast(fmt.Sprintf("JACKPOT  +%s", ui.Credits(m.totalWin)), ui.Good))
-	case m.totalWin > 0:
-		cmds = append(cmds, games.Toast(fmt.Sprintf("Win  +%s", ui.Credits(m.totalWin)), ui.Good))
+	// No toast for an ordinary win: the plate under the reels already says
+	// it, and saying it twice on one screen reads as a glitch. A jackpot
+	// still gets one, because that is worth interrupting for.
+	if m.totalWin >= m.wagered*20 && m.totalWin > 0 {
+		return m, games.Toast(fmt.Sprintf("JACKPOT  +%s", ui.Credits(m.totalWin)), ui.Good)
 	}
-	return m, tea.Batch(cmds...)
+	return m, nil
 }
 
 func (m Model) handleKey(msg tea.KeyPressMsg) (Model, tea.Cmd) {

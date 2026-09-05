@@ -686,11 +686,19 @@ func (t *Table) anyLive() bool {
 // settle scores every hand and closes the round.
 func (t *Table) settle(now time.Time) []engine.Event {
 	t.phase = PhaseSettle
-	t.hole = false
 	t.deadline = time.Time{}
 	_ = now
 
 	events := []engine.Event{}
+
+	// Show the hole card if it is still down. A round can end without the
+	// dealer ever drawing — their blackjack, or the player's — and settling a
+	// hand face down leaves the player looking at a loss with no idea what
+	// beat them.
+	if t.hole && len(t.dealer.Cards) > 1 {
+		events = append(events, HoleRevealed{Card: t.dealer.Cards[1]})
+	}
+	t.hole = false
 	for i, s := range t.seats {
 		if !s.inRound {
 			continue
@@ -852,3 +860,7 @@ func handView(h Hand) HandView {
 		Payout:    h.Payout,
 	}
 }
+
+// StackForTest puts known cards on top of the shoe. It exists for tests and
+// for looking at a table in a particular state; nothing in the game uses it.
+func (t *Table) StackForTest(cards []deck.Card) { t.shoe.Stack(cards) }

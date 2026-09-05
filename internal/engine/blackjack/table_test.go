@@ -526,3 +526,58 @@ func TestBuyInRefused(t *testing.T) {
 		t.Errorf("a free seat was refused: %v", err)
 	}
 }
+
+// The hole card is turned over whenever a round ends, not only when the
+// dealer draws.
+//
+// A dealer blackjack settles the round before anyone acts, and without this
+// the player is shown a loss next to a face-down card: beaten by something
+// they never saw.
+func TestHoleCardIsShownWhenTheRoundEndsEarly(t *testing.T) {
+	cases := []struct {
+		name string
+		spec string
+	}{
+		// player 9,8 — dealer K,A: the dealer peeks and has it.
+		{"dealer blackjack", "9 K 8 A"},
+		// player A,K — dealer 9,7: the player's own blackjack ends it.
+		{"player blackjack", "A 9 K 7"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			tb := newStacked(t, c.spec)
+			events := apply(t, tb, PlaceBet{P: me, Amount: 10})
+
+			if _, ok := engineEvent[HoleRevealed](events); !ok {
+				t.Error("the round ended with the hole card still face down")
+			}
+
+			s := snap(t, tb)
+			if s.HoleHidden {
+				t.Error("the snapshot still hides the hole card after settling")
+			}
+			if len(s.Dealer.Cards) != 2 {
+				t.Errorf("the dealer shows %d cards after settling, want both", len(s.Dealer.Cards))
+			}
+		})
+	}
+}
+
+// It is turned over exactly once: the dealer drawing must not announce it
+// twice.
+func TestHoleCardRevealedOnce(t *testing.T) {
+	tb := newStacked(t, "K 6 Q 5 4 3")
+	apply(t, tb, PlaceBet{P: me, Amount: 10})
+	events := apply(t, tb, Stand{P: me})
+
+	reveals := 0
+	for _, e := range events {
+		if _, ok := e.(HoleRevealed); ok {
+			reveals++
+		}
+	}
+	if reveals != 1 {
+		t.Errorf("the hole card was announced %d times, want once", reveals)
+	}
+}

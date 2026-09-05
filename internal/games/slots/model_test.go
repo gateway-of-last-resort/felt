@@ -297,3 +297,45 @@ func TestResultExplainsASingleWin(t *testing.T) {
 		t.Errorf("result = %q, want the amount", got)
 	}
 }
+
+// An ordinary win says so once. The plate under the reels is the
+// announcement; a toast on top of it reads as a glitch.
+func TestOrdinaryWinDoesNotAlsoToast(t *testing.T) {
+	m, drv := testModel(t)
+
+	for i := 0; i < 200; i++ {
+		m = playRound(t, m, drv)
+		if m.totalWin > 0 && m.totalWin < m.wagered*20 {
+			break
+		}
+	}
+	if m.totalWin == 0 || m.totalWin >= m.wagered*20 {
+		t.Skip("no ordinary win in 200 spins")
+	}
+
+	next, cmd := m.finish()
+	if cmd != nil {
+		if _, isToast := cmd().(games.ToastMsg); isToast {
+			t.Error("an ordinary win raised a toast as well as the plate")
+		}
+	}
+	if !strings.Contains(next.View(), "win") {
+		t.Error("the win is not announced on screen at all")
+	}
+}
+
+// A jackpot is worth interrupting for, so that one keeps its toast.
+func TestJackpotStillToasts(t *testing.T) {
+	m, _ := testModel(t)
+	m.wagered = 5
+	m.totalWin = 500 // a hundred times the stake
+	m.wins = []slotsengine.LineWin{{Line: 0, Symbol: slotsengine.Wild, Count: 3, Pays: 500}}
+
+	_, cmd := m.finish()
+	if cmd == nil {
+		t.Fatal("a jackpot said nothing")
+	}
+	if _, ok := cmd().(games.ToastMsg); !ok {
+		t.Errorf("a jackpot produced %T, want a toast", cmd())
+	}
+}
