@@ -375,7 +375,7 @@ func (m Model) roundLine() string {
 
 	switch net := back - staked; {
 	case net > 0:
-		return t.Win.Render(fmt.Sprintf("round  +%s", ui.Credits(net)))
+		return ui.WinBox(fmt.Sprintf("+%s win", ui.Credits(net)), m.compact, t)
 	case net < 0:
 		return t.Lose.Render(fmt.Sprintf("round  %s", ui.Credits(net)))
 	default:

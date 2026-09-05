@@ -80,3 +80,30 @@ func TestCompactHandIsOneLine(t *testing.T) {
 		t.Error("compact hand contains a newline")
 	}
 }
+
+// A win is announced the same way at every table, so a player recognises it
+// without reading it.
+func TestWinBox(t *testing.T) {
+	th := Default()
+
+	full := WinBox("+45 win", false, th)
+	if lipgloss.Height(full) != 3 {
+		t.Errorf("the framed win is %d rows, want 3", lipgloss.Height(full))
+	}
+	if !strings.Contains(full, "+45 win") {
+		t.Error("the framed win does not contain its text")
+	}
+
+	// On a cramped screen the frame goes and the text stays.
+	compact := WinBox("+45 win", true, th)
+	if lipgloss.Height(compact) != 1 {
+		t.Errorf("the compact win is %d rows, want 1", lipgloss.Height(compact))
+	}
+	if lipgloss.Width(compact) >= lipgloss.Width(full) {
+		t.Error("the compact win is no narrower than the framed one")
+	}
+
+	if WinBox("", false, th) != "" {
+		t.Error("an empty win draws something")
+	}
+}

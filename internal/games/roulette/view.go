@@ -88,9 +88,10 @@ func (m Model) wheelView() string {
 	line := strings.Join(cells, t.Dim.Render("·"))
 	caption := t.Dim.Render("the ball is running…")
 	if !m.spinning {
-		caption = t.Win.Render(fmt.Sprintf("%d %s", m.result, rl.ColorOf(m.result)))
 		if m.lastWin > 0 {
-			caption += t.Win.Render("   +" + ui.Credits(m.lastWin))
+			caption = lipgloss.JoinVertical(lipgloss.Center,
+				ui.WinBox(fmt.Sprintf("+%s win", ui.Credits(m.lastWin)), m.compact, t),
+				t.Label.Render(fmt.Sprintf("%d %s", m.result, rl.ColorOf(m.result))))
 		} else {
 			caption = t.Lose.Render(fmt.Sprintf("%d %s", m.result, rl.ColorOf(m.result)))
 		}

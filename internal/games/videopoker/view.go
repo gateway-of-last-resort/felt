@@ -225,7 +225,9 @@ func (m Model) promptView() string {
 	lines := []string{}
 	if last := m.snap.Last; last != nil {
 		if last.Payout > 0 {
-			lines = append(lines, t.Win.Render(fmt.Sprintf("%s  +%s", last.Rank, ui.Credits(last.Payout))))
+			lines = append(lines,
+				ui.WinBox(fmt.Sprintf("+%s win", ui.Credits(last.Payout)), m.compact, t),
+				t.Label.Render(last.Rank.String()))
 		} else {
 			lines = append(lines, t.Dim.Render(last.Rank.String()))
 		}

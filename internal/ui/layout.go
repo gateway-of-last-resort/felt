@@ -61,3 +61,25 @@ func Pad(s string, h int) string {
 	}
 	return s + strings.Repeat("\n", h-n)
 }
+
+// WinBox frames a win in gold, the way every table in felt announces one.
+//
+// It is a shared helper rather than three similar snippets so that a win
+// looks the same wherever it happens: the player should recognise it without
+// reading it. On a cramped screen the border is dropped and only the text
+// remains, because two rows of frame are worth more than the flourish.
+func WinBox(text string, compact bool, t Theme) string {
+	if text == "" {
+		return ""
+	}
+	if compact {
+		return t.Win.Render(text)
+	}
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(t.Gold).
+		Foreground(t.Gold).
+		Bold(true).
+		Padding(0, 2).
+		Render(text)
+}

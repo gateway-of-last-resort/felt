@@ -202,7 +202,7 @@ func (m Model) resultView() string {
 			return t.Dim.Render("no win")
 		}
 
-		summary := t.Win.Render(fmt.Sprintf("WIN  +%s", ui.Credits(m.totalWin)))
+		summary := ui.WinBox(fmt.Sprintf("+%s win", ui.Credits(m.totalWin)), m.compact, t)
 
 		// A total on its own leaves the player working out what paid, which
 		// matters most for the two-cherry win: it does not look like a win
@@ -218,7 +218,9 @@ func (m Model) resultView() string {
 				t.Label.Render(m.winLine(m.wins[0])),
 				t.Label.Render(m.winLine(m.wins[1])))
 		}
-		return summary + t.Label.Render(fmt.Sprintf("   on %d lines", len(m.wins)))
+		return lipgloss.JoinVertical(lipgloss.Center,
+			summary,
+			t.Label.Render(fmt.Sprintf("on %d lines", len(m.wins))))
 	}
 	return ""
 }
